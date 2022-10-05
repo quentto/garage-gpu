@@ -13,6 +13,7 @@ import click
 import cloudpickle
 import psutil
 import ray
+import math
 
 from garage import EpisodeBatch
 from garage.experiment.deterministic import get_seed
@@ -73,7 +74,9 @@ class RaySampler(Sampler):
                 n_workers=n_workers,
                 worker_class=worker_class,
                 worker_args=worker_args)
-        self._sampler_worker = ray.remote(SamplerWorker)
+        n_workers_pow_2 = 2**math.ceil(math.log2(self._worker_factory.n_workers))
+        remote_wrapper = ray.remote(num_gpus=1 / n_workers_pow_2)
+        self._sampler_worker = remote_wrapper(SamplerWorker)
         self._agents = agents
         self._envs = self._worker_factory.prepare_worker_messages(envs)
         self._all_workers = defaultdict(None)
