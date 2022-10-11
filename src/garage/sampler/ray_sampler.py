@@ -75,7 +75,7 @@ class RaySampler(Sampler):
                 worker_class=worker_class,
                 worker_args=worker_args)
         n_workers_pow_2 = 2**math.ceil(math.log2(self._worker_factory.n_workers))
-        remote_wrapper = ray.remote(num_gpus=1 / n_workers_pow_2)
+        remote_wrapper = ray.remote(num_gpus=1 / n_workers_pow_2, max_restarts=-1, max_task_retries=-1)
         self._sampler_worker = remote_wrapper(SamplerWorker)
         self._agents = agents
         self._envs = self._worker_factory.prepare_worker_messages(envs)
