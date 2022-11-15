@@ -69,7 +69,7 @@ class NormalizedEnv(Wrapper):
         """
         first_obs, episode_info = self._env.reset()
         if self._normalize_obs:
-            return self._apply_normalize_obs(first_obs), episode_info
+            return np.float32(self._apply_normalize_obs(first_obs)), episode_info
         else:
             return first_obs, episode_info
 
@@ -111,7 +111,7 @@ class NormalizedEnv(Wrapper):
         return EnvStep(env_spec=es.env_spec,
                        action=action,
                        reward=reward * self._scale_reward,
-                       observation=next_obs,
+                       observation=np.float32(next_obs),
                        env_info=es.env_info,
                        step_type=es.step_type)
 
