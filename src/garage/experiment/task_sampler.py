@@ -8,7 +8,7 @@ import numpy as np
 
 from garage.envs import GymEnv, TaskNameWrapper, TaskOnehotWrapper
 from garage.sampler.env_update import (ExistingEnvUpdate, NewEnvUpdate,
-                                       SetTaskUpdate)
+                                       SetTaskUpdate, OldEnvUpdate)
 
 # yapf: enable
 
@@ -375,3 +375,45 @@ class MetaWorldTaskSampler(TaskSampler):
             self._next_order_index %= MW_TASKS_PER_ENV
             self._shuffle_tasks()
         return updates
+
+class TamtRsTaskSampler(TaskSampler):
+    """_summary_
+
+    Args:
+        TaskSampler (_type_): _description_
+    """
+    def __init__(self, objects, cons_func, controller_config, exp_config):
+        self._objects = objects
+        self._cons_func = cons_func
+        self._controller_config = controller_config
+        self._exp_config = exp_config
+        
+    @property
+    def n_tasks(self):
+        """int: the number of tasks."""
+        return len(self._objects)
+
+    def sample(self, n_tasks, with_replacement=False):
+        """sample objects
+
+        Args:
+            n_tasks (_type_): _description_
+            with_replacement (bool, optional): _description_. Defaults to False.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if n_tasks > len(self._objects):
+            raise ValueError('Cannot sample more environments than are '
+                             'present in the pool. If more tasks are needed, '
+                             'call grow_pool to copy random existing tasks.')
+        if with_replacement:
+            raise ValueError('EnvPoolSampler cannot meaningfully sample with '
+                             'replacement.')
+        objects = list(self._objects)
+        np.random.shuffle(objects)
+        return [OldEnvUpdate(object, self._cons_func, self._controller_config, self._exp_config) for object in objects[:n_tasks]]

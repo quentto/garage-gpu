@@ -158,3 +158,25 @@ class ExistingEnvUpdate(EnvUpdate):
                       'method of transmitting environments to other '
                       'processes.')
         return self.__dict__
+
+
+class OldEnvUpdate(EnvUpdate):
+    def __init__(self, object, cons_func, controller_config, exp_config):
+        self._object = object
+        self._cons_func = cons_func
+        self._controller_config = controller_config
+        self._exp_config = exp_config
+
+    def __call__(self, old_env=None):
+        """_summary_
+
+        Args:
+            old_env (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if old_env is None:
+            return self._cons_func(self._object, self._controller_config, self._exp_config)
+        else:
+            return old_env
