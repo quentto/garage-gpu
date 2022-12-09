@@ -179,4 +179,5 @@ class OldEnvUpdate(EnvUpdate):
         if old_env is None:
             return self._cons_func(self._object, self._controller_config, self._exp_config)
         else:
+            old_env._set_object(self._object)
             return old_env
