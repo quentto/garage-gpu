@@ -110,8 +110,10 @@ class ConstructEnvsSampler(TaskSampler):
 
         """
         return [
-            NewEnvUpdate(self._env_constructors[i]) for i in _sample_indices(
-                n_tasks, len(self._env_constructors), with_replacement)
+            NewEnvUpdate(self._env_constructors[i])
+            for i in _sample_indices(
+                n_tasks, len(self._env_constructors), with_replacement
+            )
         ]
 
 
@@ -139,7 +141,7 @@ class SetTaskSampler(TaskSampler):
     @property
     def n_tasks(self):
         """int or None: The number of tasks if known and finite."""
-        return getattr(self._env, 'num_tasks', None)
+        return getattr(self._env, "num_tasks", None)
 
     def sample(self, n_tasks, with_replacement=False):
         """Sample a list of environment updates.
@@ -202,12 +204,15 @@ class EnvPoolSampler(TaskSampler):
 
         """
         if n_tasks > len(self._envs):
-            raise ValueError('Cannot sample more environments than are '
-                             'present in the pool. If more tasks are needed, '
-                             'call grow_pool to copy random existing tasks.')
+            raise ValueError(
+                "Cannot sample more environments than are "
+                "present in the pool. If more tasks are needed, "
+                "call grow_pool to copy random existing tasks."
+            )
         if with_replacement:
-            raise ValueError('EnvPoolSampler cannot meaningfully sample with '
-                             'replacement.')
+            raise ValueError(
+                "EnvPoolSampler cannot meaningfully sample with " "replacement."
+            )
         envs = list(self._envs)
         np.random.shuffle(envs)
         return [ExistingEnvUpdate(env) for env in envs[:n_tasks]]
@@ -224,9 +229,9 @@ class EnvPoolSampler(TaskSampler):
         """
         if new_size <= len(self._envs):
             return
-        to_copy = _sample_indices(new_size - len(self._envs),
-                                  len(self._envs),
-                                  with_replacement=False)
+        to_copy = _sample_indices(
+            new_size - len(self._envs), len(self._envs), with_replacement=False
+        )
         for idx in to_copy:
             self._envs.append(copy.deepcopy(self._envs[idx]))
 
@@ -259,34 +264,32 @@ class MetaWorldTaskSampler(TaskSampler):
         self._kind = kind
         self._inner_wrapper = wrapper
         self._add_env_onehot = add_env_onehot
-        if kind == 'train':
+        if kind == "train":
             self._classes = benchmark.train_classes
             self._tasks = benchmark.train_tasks
-        elif kind == 'test':
+        elif kind == "test":
             self._classes = benchmark.test_classes
             self._tasks = benchmark.test_tasks
         else:
-            raise ValueError('kind must be either "train" or "test", '
-                             f'not {kind!r}')
+            raise ValueError('kind must be either "train" or "test", ' f"not {kind!r}")
         self._task_indices = {}
         if add_env_onehot:
-            if kind == 'test' or 'metaworld.ML' in repr(type(benchmark)):
-                raise ValueError('add_env_onehot should only be used with '
-                                 f'multi-task benchmarks, not {benchmark!r}')
+            if kind == "test" or "metaworld.ML" in repr(type(benchmark)):
+                raise ValueError(
+                    "add_env_onehot should only be used with "
+                    f"multi-task benchmarks, not {benchmark!r}"
+                )
             self._task_indices = {
-                env_name: index
-                for (index, env_name) in enumerate(self._classes.keys())
+                env_name: index for (index, env_name) in enumerate(self._classes.keys())
             }
         self._task_map = {
-            env_name:
-            [task for task in self._tasks if task.env_name == env_name]
+            env_name: [task for task in self._tasks if task.env_name == env_name]
             for env_name in self._classes.keys()
         }
         for tasks in self._task_map.values():
             assert len(tasks) == MW_TASKS_PER_ENV
         self._task_orders = {
-            env_name: np.arange(50)
-            for env_name in self._task_map.keys()
+            env_name: np.arange(50) for env_name in self._task_map.keys()
         }
         self._next_order_index = 0
         self._shuffle_tasks()
@@ -328,8 +331,10 @@ class MetaWorldTaskSampler(TaskSampler):
 
         """
         if n_tasks % len(self._classes) != 0:
-            raise ValueError('For this benchmark, n_tasks must be a multiple '
-                             f'of {len(self._classes)}')
+            raise ValueError(
+                "For this benchmark, n_tasks must be a multiple "
+                f"of {len(self._classes)}"
+            )
         tasks_per_class = n_tasks // len(self._classes)
         updates = []
 
@@ -352,9 +357,11 @@ class MetaWorldTaskSampler(TaskSampler):
             env = GymEnv(env, max_episode_length=env.max_path_length)
             env = TaskNameWrapper(env, task_name=task.env_name)
             if add_env_onehot:
-                env = TaskOnehotWrapper(env,
-                                        task_index=task_indices[task.env_name],
-                                        n_total_tasks=len(task_indices))
+                env = TaskOnehotWrapper(
+                    env,
+                    task_index=task_indices[task.env_name],
+                    n_total_tasks=len(task_indices),
+                )
             if inner_wrapper is not None:
                 env = inner_wrapper(env, task)
             return env
@@ -376,22 +383,25 @@ class MetaWorldTaskSampler(TaskSampler):
             self._shuffle_tasks()
         return updates
 
+
 class TamtRsTaskSampler(TaskSampler):
     """_summary_
 
     Args:
         TaskSampler (_type_): _description_
     """
-    def __init__(self, objects, cons_func, controller_config, exp_config):
-        self._objects = objects
+
+    def __init__(self, type, tasks, cons_func, controller_config, exp_config):
+        self._type = type
+        self._tasks = tasks
         self._cons_func = cons_func
         self._controller_config = controller_config
         self._exp_config = exp_config
-        
+
     @property
     def n_tasks(self):
         """int: the number of tasks."""
-        return len(self._objects)
+        return len(self._tasks)
 
     def sample(self, n_tasks, with_replacement=False):
         """sample objects
@@ -407,13 +417,25 @@ class TamtRsTaskSampler(TaskSampler):
         Returns:
             _type_: _description_
         """
-        if n_tasks > len(self._objects):
-            raise ValueError('Cannot sample more environments than are '
-                             'present in the pool. If more tasks are needed, '
-                             'call grow_pool to copy random existing tasks.')
+        if n_tasks > len(self._tasks):
+            raise ValueError(
+                "Cannot sample more environments than are "
+                "present in the pool. If more tasks are needed, "
+                "call grow_pool to copy random existing tasks."
+            )
         if with_replacement:
-            raise ValueError('EnvPoolSampler cannot meaningfully sample with '
-                             'replacement.')
-        objects = list(self._objects)
-        np.random.shuffle(objects)
-        return [OldEnvUpdate(object, self._cons_func, self._controller_config, self._exp_config) for object in objects[:n_tasks]]
+            raise ValueError(
+                "EnvPoolSampler cannot meaningfully sample with " "replacement."
+            )
+        tasks = list(self._tasks)
+        np.random.shuffle(tasks)
+        return [
+            OldEnvUpdate(
+                self._type,
+                task,
+                self._cons_func,
+                self._controller_config,
+                self._exp_config,
+            )
+            for task in tasks[:n_tasks]
+        ]

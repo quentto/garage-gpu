@@ -77,8 +77,7 @@ class SetTaskUpdate(EnvUpdate):
 
     def __init__(self, env_type, task, wrapper_constructor):
         if not isinstance(env_type, type):
-            raise ValueError('env_type should be a type, not '
-                             f'{type(env_type)!r}')
+            raise ValueError("env_type should be a type, not " f"{type(env_type)!r}")
         self._env_type = env_type
         self._task = task
         self._wrapper_cons = wrapper_constructor
@@ -111,9 +110,11 @@ class SetTaskUpdate(EnvUpdate):
         # pylint: disable=unidiomatic-typecheck
         if old_env is None:
             return self._make_env()
-        elif type(getattr(old_env, 'unwrapped', old_env)) != self._env_type:
-            warnings.warn('SetTaskEnvUpdate is closing an environment. This '
-                          'may indicate a very slow TaskSampler setup.')
+        elif type(getattr(old_env, "unwrapped", old_env)) != self._env_type:
+            warnings.warn(
+                "SetTaskEnvUpdate is closing an environment. This "
+                "may indicate a very slow TaskSampler setup."
+            )
             old_env.close()
             return self._make_env()
         else:
@@ -154,15 +155,18 @@ class ExistingEnvUpdate(EnvUpdate):
             dict: The pickled state.
 
         """
-        warnings.warn('ExistingEnvUpdate is generally not the most efficient '
-                      'method of transmitting environments to other '
-                      'processes.')
+        warnings.warn(
+            "ExistingEnvUpdate is generally not the most efficient "
+            "method of transmitting environments to other "
+            "processes."
+        )
         return self.__dict__
 
 
 class OldEnvUpdate(EnvUpdate):
-    def __init__(self, object, cons_func, controller_config, exp_config):
-        self._object = object
+    def __init__(self, type, task, cons_func, controller_config, exp_config):
+        self._type = type
+        self._task = task
         self._cons_func = cons_func
         self._controller_config = controller_config
         self._exp_config = exp_config
@@ -177,7 +181,9 @@ class OldEnvUpdate(EnvUpdate):
             _type_: _description_
         """
         if old_env is None:
-            return self._cons_func(self._object, self._controller_config, self._exp_config)
+            return self._cons_func(
+                self._type, self._task, self._controller_config, self._exp_config
+            )
         else:
-            old_env.unwrapped._set_object(self._object)
+            old_env.unwrapped._set_task(self._task)
             return old_env
