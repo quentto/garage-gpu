@@ -215,8 +215,6 @@ class MultiEnvWrapper(Wrapper):
 
         if self._mode == "add-onehot":
             obs = np.concatenate([es.observation, self._active_task_one_hot()])
-            if self._object_buffer:
-                obs = np.concatenate([obs, np.zeros(self._object_buffer)])
 
         elif self._mode == "del-onehot":
             obs = es.observation[: -self._num_tasks]
