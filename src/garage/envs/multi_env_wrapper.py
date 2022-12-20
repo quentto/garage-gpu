@@ -69,33 +69,37 @@ class MultiEnvWrapper(Wrapper):
 
     """
 
-    def __init__(self,
-                 envs,
-                 sample_strategy=uniform_random_strategy,
-                 mode='add-onehot',
-                 env_names=None):
-        assert mode in ['vanilla', 'add-onehot', 'del-onehot']
+    def __init__(
+        self,
+        envs,
+        sample_strategy=uniform_random_strategy,
+        object_buffer=1,
+        mode="add-onehot",
+        env_names=None,
+    ):
+        assert mode in ["vanilla", "add-onehot", "del-onehot"]
 
         self._sample_strategy = sample_strategy
         self._num_tasks = len(envs)
         self._active_task_index = None
         self._mode = mode
+        self._object_buffer = object_buffer
 
         super().__init__(envs[0])
         if env_names is not None:
-            assert isinstance(env_names, list), 'env_names must be a list'
-            msg = ('env_names are not unique or there is not an env_name',
-                   'corresponding to each env in envs')
+            assert isinstance(env_names, list), "env_names must be a list"
+            msg = (
+                "env_names are not unique or there is not an env_name",
+                "corresponding to each env in envs",
+            )
             assert len(set(env_names)) == len(envs), msg
         self._env_names = env_names
         self._task_envs = []
         for env in envs:
-            if (env.observation_space.shape !=
-                    self._env.observation_space.shape):
-                raise ValueError(
-                    'Observation space of all envs should be same.')
+            if env.observation_space.shape != self._env.observation_space.shape:
+                raise ValueError("Observation space of all envs should be same.")
             if env.action_space.shape != self._env.action_space.shape:
-                raise ValueError('Action space of all envs should be same.')
+                raise ValueError("Action space of all envs should be same.")
             self._task_envs.append(env)
 
     @property
@@ -106,13 +110,14 @@ class MultiEnvWrapper(Wrapper):
             akro.Box: Observation space.
 
         """
-        if self._mode == 'vanilla':
+        if self._mode == "vanilla":
             return self._env.observation_space
-        elif self._mode == 'add-onehot':
+        elif self._mode == "add-onehot":
             task_lb, task_ub = self.task_space.bounds
             env_lb, env_ub = self._env.observation_space.bounds
-            return akro.Box(np.concatenate([env_lb, task_lb]),
-                            np.concatenate([env_ub, task_ub]))
+            return akro.Box(
+                np.concatenate([env_lb, task_lb]), np.concatenate([env_ub, task_ub])
+            )
         else:  # self._mode == 'del-onehot'
             env_lb, env_ub = self._env.observation_space.bounds
             num_tasks = self._num_tasks
@@ -127,9 +132,11 @@ class MultiEnvWrapper(Wrapper):
                 wrapped environments.
 
         """
-        return EnvSpec(action_space=self.action_space,
-                       observation_space=self.observation_space,
-                       max_episode_length=self._env.spec.max_episode_length)
+        return EnvSpec(
+            action_space=self.action_space,
+            observation_space=self.observation_space,
+            max_episode_length=self._env.spec.max_episode_length,
+        )
 
     @property
     def num_tasks(self):
@@ -149,8 +156,8 @@ class MultiEnvWrapper(Wrapper):
             akro.Box: Task space.
 
         """
-        one_hot_ub = np.ones(self.num_tasks)
-        one_hot_lb = np.zeros(self.num_tasks)
+        one_hot_ub = np.ones(self.num_tasks + self._object_buffer)
+        one_hot_lb = np.zeros(self.num_tasks + self._object_buffer)
         return akro.Box(one_hot_lb, one_hot_ub)
 
     @property
@@ -161,7 +168,7 @@ class MultiEnvWrapper(Wrapper):
             int: Index of active task.
 
         """
-        if hasattr(self._env, 'active_task_index'):
+        if hasattr(self._env, "active_task_index"):
             return self._env.active_task_index
         else:
             return self._active_task_index
@@ -180,16 +187,17 @@ class MultiEnvWrapper(Wrapper):
 
         """
         self._active_task_index = self._sample_strategy(
-            self._num_tasks, self._active_task_index)
+            self._num_tasks, self._active_task_index
+        )
         self._env = self._task_envs[self._active_task_index]
         obs, episode_info = self._env.reset()
 
-        if self._mode == 'vanilla':
+        if self._mode == "vanilla":
             pass
-        elif self._mode == 'add-onehot':
+        elif self._mode == "add-onehot":
             obs = np.concatenate([obs, self._active_task_one_hot()])
         else:  # self._mode == 'del-onehot'
-            obs = obs[:-self._num_tasks]
+            obs = obs[: -self._num_tasks]
 
         return obs, episode_info
 
@@ -205,25 +213,30 @@ class MultiEnvWrapper(Wrapper):
         """
         es = self._env.step(action)
 
-        if self._mode == 'add-onehot':
+        if self._mode == "add-onehot":
             obs = np.concatenate([es.observation, self._active_task_one_hot()])
-        elif self._mode == 'del-onehot':
-            obs = es.observation[:-self._num_tasks]
+            if self._object_buffer:
+                obs = np.concatenate([obs, np.zeros(self._object_buffer)])
+
+        elif self._mode == "del-onehot":
+            obs = es.observation[: -self._num_tasks]
         else:  # self._mode == 'vanilla'
             obs = es.observation
 
         env_info = es.env_info
-        if 'task_id' not in es.env_info:
-            env_info['task_id'] = self._active_task_index
+        if "task_id" not in es.env_info:
+            env_info["task_id"] = self._active_task_index
         if self._env_names is not None:
-            env_info['task_name'] = self._env_names[self._active_task_index]
+            env_info["task_name"] = self._env_names[self._active_task_index]
 
-        return EnvStep(env_spec=self.spec,
-                       action=action,
-                       reward=es.reward,
-                       observation=obs,
-                       env_info=env_info,
-                       step_type=es.step_type)
+        return EnvStep(
+            env_spec=self.spec,
+            action=action,
+            reward=es.reward,
+            observation=obs,
+            env_info=env_info,
+            step_type=es.step_type,
+        )
 
     def close(self):
         """Close all task envs."""
