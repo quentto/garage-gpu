@@ -1,6 +1,9 @@
 """PyTorch Policies."""
 from garage.torch.policies.categorical_cnn_policy import CategoricalCNNPolicy
 from garage.torch.policies.categorical_mlp_policy import CategoricalMLPPolicy
+from garage.torch.policies.categorical_multi_modal_cnn_policy import (
+    CategoricalMultiModalCNNPolicy,
+)
 from garage.torch.policies.context_conditioned_policy import ContextConditionedPolicy
 from garage.torch.policies.deterministic_mlp_policy import DeterministicMLPPolicy
 from garage.torch.policies.discrete_cnn_policy import DiscreteCNNPolicy
@@ -12,6 +15,7 @@ from garage.torch.policies.tanh_gaussian_mlp_policy import TanhGaussianMLPPolicy
 __all__ = [
     "CategoricalCNNPolicy",
     "CategoricalMLPPolicy",
+    "CategoricalMultiModalCNNPolicy",
     "DeterministicMLPPolicy",
     "DiscreteCNNPolicy",
     "DiscreteQFArgmaxPolicy",
