@@ -85,7 +85,7 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
         output_w_init=nn.init.xavier_uniform_,
         output_b_init=nn.init.zeros_,
         layer_normalization=False,
-        name="CategoricalCNNPolicy"
+        name="CategoricalMultiModalCNNPolicy"
     ):
 
         if not isinstance(env_spec.action_space, akro.Discrete):
