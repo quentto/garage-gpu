@@ -2,6 +2,7 @@
 import akro
 import torch
 from torch import nn
+import numpy as np
 
 from garage import InOutSpec
 from garage.torch.modules import CNNModule, MultiHeadedMLPModule
@@ -68,6 +69,7 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
     def __init__(
         self,
         env_spec,
+        img_obs_space,
         image_format,
         kernel_sizes,
         *,
@@ -85,7 +87,7 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
         output_w_init=nn.init.xavier_uniform_,
         output_b_init=nn.init.zeros_,
         layer_normalization=False,
-        name="CategoricalMultiModalCNNPolicy"
+        name="CategoricalMultiModalCNNPolicy",
     ):
 
         if not isinstance(env_spec.action_space, akro.Discrete):
@@ -99,8 +101,10 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
 
         super().__init__(env_spec, name)
 
+        self.img_obs_space = img_obs_space
+
         self._cnn_module = CNNModule(
-            InOutSpec(self._env_spec.observation_space, None),
+            InOutSpec(self.img_obs_space, None),
             image_format=image_format,
             kernel_sizes=kernel_sizes,
             strides=strides,
@@ -115,9 +119,12 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
             pool_stride=pool_stride,
             layer_normalization=layer_normalization,
         )
+        self.sensor_vec_dim = self._env_spec.observation_space.flat_dim - np.prod(
+            self.img_obs_space.shape
+        )
         self._mlp_module = MultiHeadedMLPModule(
             n_heads=1,
-            input_dim=self._cnn_module.spec.output_space.flat_dim,
+            input_dim=self._cnn_module.spec.output_space.flat_dim + self.sensor_vec_dim,
             output_dims=[self._env_spec.action_space.flat_dim],
             hidden_sizes=hidden_sizes,
             hidden_w_init=hidden_w_init,
@@ -139,12 +146,12 @@ class CategoricalMultiModalCNNPolicy(StochasticPolicy):
                 Do not need to be detached, and can be on any device.
         """
         # We're given flattened observations.
-        image_observations, sensor = observations
-        image_observations = image_observations.reshape(
-            -1, *self._env_spec.observation_space.shape
-        )
+        observations = observations.reshape(-1, observations.shape[-1])
+        image_observations = observations[:, : -self.sensor_vec_dim]
+        sensor = observations[:, -self.sensor_vec_dim :]
+        image_observations = image_observations.reshape(-1, *self.img_obs_space.shape)
         cnn_output = self._cnn_module(image_observations)
-        multi_modal = np.concatenate([cnn_output, sensor])
+        multi_modal = torch.cat([cnn_output, sensor], 1)
         mlp_output = self._mlp_module(multi_modal)[0]
         logits = torch.softmax(mlp_output, axis=1)
         dist = torch.distributions.Categorical(logits=logits)
