@@ -96,15 +96,6 @@ class GaussianMultiModalCNNPolicy(StochasticPolicy):
         name="GaussianMultiModalCNNPolicy",
     ):
 
-        if not isinstance(env_spec.action_space, akro.Discrete):
-            raise ValueError(
-                "CategoricalMLPPolicy only works " "with akro.Discrete action space."
-            )
-        if isinstance(env_spec.observation_space, akro.Dict):
-            raise ValueError(
-                "CNN policies do not support " "with akro.Dict observation spaces."
-            )
-
         super().__init__(env_spec, name)
 
         self.img_obs_space = img_obs_space
@@ -128,9 +119,10 @@ class GaussianMultiModalCNNPolicy(StochasticPolicy):
         self.sensor_vec_dim = self._env_spec.observation_space.flat_dim - np.prod(
             self.img_obs_space.shape
         )
+
         self._mlp_module = GaussianMLPModule(
             input_dim=self._cnn_module.spec.output_space.flat_dim + self.sensor_vec_dim,
-            output_dim=self._action_dim,
+            output_dim=self._env_spec.input_space.flat_dim,
             hidden_sizes=hidden_sizes,
             hidden_nonlinearity=hidden_nonlinearity,
             hidden_w_init=hidden_w_init,
@@ -165,5 +157,5 @@ class GaussianMultiModalCNNPolicy(StochasticPolicy):
         cnn_output = self._cnn_module(image_observations)
         multi_modal = torch.cat([cnn_output, sensor], 1)
 
-        dist = self._module(multi_modal)
+        dist = self._mlp_module(multi_modal)
         return (dist, dict(mean=dist.mean, log_std=(dist.variance**0.5).log()))
