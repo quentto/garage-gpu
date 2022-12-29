@@ -4,7 +4,7 @@ from garage.torch.policies.categorical_mlp_policy import CategoricalMLPPolicy
 from garage.torch.policies.categorical_multi_modal_cnn_policy import (
     CategoricalMultiModalCNNPolicy,
 )
-from garage.torch.policies.categorical_multi_modal_cnn_policy import (
+from garage.torch.policies.gaussian_multi_modal_cnn_policy import (
     GaussianMultiModalCNNPolicy,
 )
 from garage.torch.policies.context_conditioned_policy import ContextConditionedPolicy
