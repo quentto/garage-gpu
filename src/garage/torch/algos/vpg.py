@@ -247,7 +247,7 @@ class VPG(RLAlgorithm):
             for _ in range(self._n_samples):
                 eps = trainer.obtain_episodes(trainer.step_itr)
                 last_return = self._train_once(trainer.step_itr, eps)
-                self.save_itr_grasp_states(trainer.step_itr, eps)
+                # self.save_itr_grasp_states(trainer.step_itr, eps)
                 trainer.step_itr += 1
 
         return last_return
