@@ -224,7 +224,7 @@ class VPG(RLAlgorithm):
                 os.makedirs(save_dir, exist_ok=True)
                 save_path = os.path.join(
                     save_dir,
-                    f"itr_{itr}_grasp_state_{str(itr_grasp_count)}.dat",
+                    f"itr_{itr}_grasp_state_{str(itr_grasp_count)}.pkl",
                 )
                 pickle.dump(state, open(save_path, "wb"))
                 itr_grasp_count += 1
